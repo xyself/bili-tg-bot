@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  bilibili-telegram-bot:
+    image: xyself/bilibili-telegram-bot:latest   # 拉取现有镜像
+    environment:
+      - TG_BOT_TOKEN=${TG_BOT_TOKEN}
+      - TG_CHAT_ID=${TG_CHAT_ID}
+      - TEST_ROOM_IDS=${TEST_ROOM_IDS}
+      - SESSDATA=${SESSDATA}
+    restart: unless-stopped
