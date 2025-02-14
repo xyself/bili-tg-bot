@@ -45,12 +45,22 @@ class MyHandler(BaseHandler):
         except Exception as e:
             logging.error(f"发送 Super Chat 消息失败: {e}")
 
+    async def _on_enter_room(self, client: BLiveClient):
+        """ 处理进房消息 """
+        text = "🎉 进入房间！"
+        logging.info(text)
+        try:
+            await room_bot.send_message(chat_id=TG_CHAT_ID, text=text)  # 使用房间机器人发送消息
+        except Exception as e:
+            logging.error(f"发送进房消息失败: {e}")
+
 async def run():
     """ 运行弹幕监听 """
     for room_id in ROOM_IDS:
         client = BLiveClient(room_id)
         handler = MyHandler()
         client.add_handler(handler)
+        client.add_handler(BaseHandler._on_enter_room)  # 添加进房处理
         await client.start()
 
 if __name__ == "__main__":
