@@ -1,14 +1,11 @@
-# 使用 Python 作为基础镜像
-FROM python:3.9
+FROM python:3.9-alpine
 
-# 设置工作目录
+# 安装系统依赖
+RUN apk add --no-cache gcc musl-dev
+
 WORKDIR /app
-
-# 复制项目文件到容器中
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
-# 安装 Python 依赖
-RUN pip install -r requirements.txt
-
-# 容器启动时执行的命令
 CMD ["python", "blivedm_tg_bot.py"]
