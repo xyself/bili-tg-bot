@@ -60,7 +60,7 @@ async def run():
         client = BLiveClient(room_id)
         handler = MyHandler()
         client.add_handler(handler)
-        client.add_handler(BaseHandler._on_enter_room)  # 添加进房处理
+        client.add_handler(handler._on_enter_room)  # 添加进房处理
         await client.start()
 
 if __name__ == "__main__":
