@@ -28,7 +28,7 @@ RUN apk del \
     cargo
 
 # 复制应用代码
-COPY sample_tg.py .
+COPY blivedm_tg_bot.py .
 
 # 创建日志目录
 RUN mkdir -p logs
