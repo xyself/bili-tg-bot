@@ -2,7 +2,9 @@ __pycache__
 *.pyc
 *.pyo
 *.pyd
-*.db
-*.log
-.git
+.Python
+env/
+venv/
 .env
+.git
+.gitignore
