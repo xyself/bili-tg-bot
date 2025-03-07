@@ -4,7 +4,11 @@ FROM python:3.12-alpine AS builder
 # 安装编译依赖
 RUN apk add --no-cache \
     gcc \
-    musl-dev
+    musl-dev \
+    python3-dev \
+    libffi-dev \
+    openssl-dev \
+    cargo
 
 WORKDIR /app
 COPY requirements.txt .
@@ -16,6 +20,10 @@ FROM python:3.12-alpine
 # 设置时区和Python环境
 ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1
+
+# 安装运行时依赖
+RUN apk add --no-cache \
+    tzdata
 
 WORKDIR /app
 
