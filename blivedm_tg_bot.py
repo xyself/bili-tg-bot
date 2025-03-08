@@ -59,7 +59,8 @@ class MyHandler(blivedm.BaseHandler):
             data = {
                 "chat_id": chat_id,
                 "text": message,
-                "parse_mode": "HTML"
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True
             }
 
             response = requests.post(url, json=data)
@@ -73,8 +74,10 @@ class MyHandler(blivedm.BaseHandler):
         """弹幕消息"""
         if not message.msg or not message.uname:
             return
-        content = f'💬 [{client.room_id}] {message.uname}: {message.msg}'
-        print(content)
+        # 使用 HTML 格式，将用户名转换为可点击的链接
+        user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
+        content = f'💬 [{client.room_id}] {user_link}: {message.msg}'
+        print(f'💬 [{client.room_id}] {message.uname}: {message.msg}')  # 控制台输出保持原样
         self.send_to_telegram(content)
 
     def _on_gift(self, client: blivedm.BLiveClient, message: web_models.GiftMessage):
@@ -104,8 +107,9 @@ class MyHandler(blivedm.BaseHandler):
     def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
         """进房消息（使用备用 bot 发送）"""
         if message.msg_type == 1:
-            content = f'🚪 [{client.room_id}] {message.username} 进入房间'
-            print(content)
+            user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
+            content = f'🚪 [{client.room_id}] {user_link} 进入房间'
+            print(f'🚪 [{client.room_id}] {message.username} 进入房间')  # 控制台输出保持原样
             self.send_to_telegram(content, use_alt_bot=True)
 
 async def main():
