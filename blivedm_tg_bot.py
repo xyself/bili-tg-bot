@@ -41,6 +41,23 @@ class MyHandler(blivedm.BaseHandler):
     def __init__(self):
         super().__init__()
 
+    def _get_log_filename(self, prefix: str) -> str:
+        """获取当天的日志文件名"""
+        from datetime import datetime
+        return f'logs/{prefix}_{datetime.now().strftime("%Y-%m-%d")}.log'
+
+    def _write_log(self, prefix: str, content: str):
+        """写入日志"""
+        import os
+        # 确保logs目录存在
+        os.makedirs('logs', exist_ok=True)
+        
+        filename = self._get_log_filename(prefix)
+        with open(filename, 'a', encoding='utf-8') as f:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f'[{timestamp}] {content}\n')
+
     def send_to_telegram(self, message: str, use_alt_bot=False):
         """发送消息到 Telegram，use_alt_bot=True 时使用备用 bot"""
         bot_token = ALT_TELEGRAM_BOT_TOKEN if use_alt_bot else TELEGRAM_BOT_TOKEN
@@ -77,7 +94,9 @@ class MyHandler(blivedm.BaseHandler):
         # 使用 HTML 格式，将用户名转换为可点击的链接
         user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
         content = f'💬 [{client.room_id}] {user_link}: {message.msg}'
-        print(f'💬 [{client.room_id}] {message.uname}: {message.msg}')  # 控制台输出保持原样
+        log_content = f'[{client.room_id}] {message.uname}: {message.msg}'  # 日志内容不包含HTML标签
+        print(f'💬 {log_content}')  # 控制台输出
+        self._write_log('danmaku', log_content)  # 写入日志
         self.send_to_telegram(content)
 
     def _on_gift(self, client: blivedm.BLiveClient, message: web_models.GiftMessage):
@@ -109,7 +128,9 @@ class MyHandler(blivedm.BaseHandler):
         if message.msg_type == 1:
             user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
             content = f'🚪 [{client.room_id}] {user_link} 进入房间'
-            print(f'🚪 [{client.room_id}] {message.username} 进入房间')  # 控制台输出保持原样
+            log_content = f'[{client.room_id}] {message.username} 进入房间'  # 日志内容不包含HTML标签
+            print(f'🚪 {log_content}')  # 控制台输出
+            self._write_log('enter', log_content)  # 写入日志
             self.send_to_telegram(content, use_alt_bot=True)
 
 async def main():
