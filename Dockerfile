@@ -15,6 +15,6 @@ COPY . .
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
-
+VOLUME ["/app/logs"]
 # 运行主程序
 CMD ["python", "blivedm_tg_bot.py"]
