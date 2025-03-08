@@ -12,7 +12,8 @@ import blivedm.models.web as web_models
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    encoding='utf-8'  # 添加编码设置
 )
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,10 @@ class MyHandler(blivedm.BaseHandler):
                 os.makedirs('logs', exist_ok=True)
                 
                 filename = self._get_log_filename(prefix)
-                with open(filename, 'a', encoding='utf-8') as f:
+                # 处理 emoji 和特殊字符
+                content = content.encode('utf-8', errors='replace').decode('utf-8')
+                
+                with open(filename, 'a', encoding='utf-8', errors='replace') as f:
                     from datetime import datetime
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     f.write(f'[{timestamp}] {content}\n')
@@ -78,15 +82,20 @@ class MyHandler(blivedm.BaseHandler):
     def _handle_message(self, prefix: str, content: str, tg_content: str, use_alt_bot=False):
         """统一处理消息：打印、记录日志、发送到Telegram"""
         try:
-            # 1. 打印到控制台
-            print(content)
+            # 1. 打印到控制台（确保使用正确的编码）
+            print(content.encode('utf-8', errors='replace').decode('utf-8'))
             
-            # 2. 写入日志
-            log_success = self._write_log(prefix, content)
+            # 2. 写入日志（移除 emoji）
+            log_content = content
+            # 移除常见的 emoji
+            emojis = ['💬', '🎁', '🚢', '💎', '🚪', '🎮']
+            for emoji in emojis:
+                log_content = log_content.replace(emoji, '')
+            log_success = self._write_log(prefix, log_content.strip())
             if not log_success:
                 logger.error(f"无法写入{prefix}日志")
             
-            # 3. 发送到Telegram
+            # 3. 发送到Telegram（保留 emoji）
             self.send_to_telegram(tg_content, use_alt_bot)
             
         except Exception as e:
@@ -169,8 +178,10 @@ class MyHandler(blivedm.BaseHandler):
                 return
             # 使用 HTML 格式，将用户名转换为可点击的链接
             user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
-            tg_content = f'💬 [{client.room_id}] {user_link}: {message.msg}'
-            log_content = f'[{client.room_id}] {message.uname}: {message.msg}'
+            # 确保消息内容使用正确的编码
+            message_content = message.msg.encode('utf-8', errors='replace').decode('utf-8')
+            tg_content = f'💬 [{client.room_id}] {user_link}: {message_content}'
+            log_content = f'[{client.room_id}] {message.uname}: {message_content}'
             self._handle_message('danmaku', f'💬 {log_content}', tg_content)
         except Exception as e:
             logger.error(f"处理弹幕消息时发生错误: {e}")
