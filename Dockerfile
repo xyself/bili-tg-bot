@@ -1,5 +1,5 @@
-# 使用 Python 3.9 作为基础镜像
-FROM python:3.9-alpine
+# 使用 Python 3.12 作为基础镜像
+FROM python:3.12-alpine
 
 # 设置工作目录
 WORKDIR /app
@@ -15,6 +15,6 @@ COPY . .
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
-VOLUME ["/app/logs"]
+
 # 运行主程序
 CMD ["python", "blivedm_tg_bot.py"]
