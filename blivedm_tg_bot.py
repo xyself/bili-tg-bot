@@ -47,20 +47,51 @@ class MyHandler(blivedm.BaseHandler):
         return f'logs/{prefix}_{datetime.now().strftime("%Y-%m-%d")}.log'
 
     def _write_log(self, prefix: str, content: str):
-        """写入日志"""
+        """写入日志，带重试机制"""
+        max_retries = 3
+        retry_delay = 1  # 初始重试延迟（秒）
+        
+        for attempt in range(max_retries):
+            try:
+                import os
+                # 确保logs目录存在
+                os.makedirs('logs', exist_ok=True)
+                
+                filename = self._get_log_filename(prefix)
+                with open(filename, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    f.write(f'[{timestamp}] {content}\n')
+                    f.flush()  # 立即刷新缓冲区
+                    os.fsync(f.fileno())  # 确保写入磁盘
+                return True  # 写入成功
+            except Exception as e:
+                if attempt == max_retries - 1:  # 最后一次尝试
+                    logger.error(f"写入日志失败（已重试{max_retries}次）: {e}")
+                    print(f"写入日志失败（已重试{max_retries}次）: {e}")
+                else:
+                    logger.warning(f"写入日志失败，正在重试（{attempt + 1}/{max_retries}）: {e}")
+                    import time
+                    time.sleep(retry_delay)
+        return False  # 写入失败
+
+    def _handle_message(self, prefix: str, content: str, tg_content: str, use_alt_bot=False):
+        """统一处理消息：打印、记录日志、发送到Telegram"""
         try:
-            import os
-            # 确保logs目录存在
-            os.makedirs('logs', exist_ok=True)
+            # 1. 打印到控制台
+            print(content)
             
-            filename = self._get_log_filename(prefix)
-            with open(filename, 'a', encoding='utf-8') as f:
-                from datetime import datetime
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                f.write(f'[{timestamp}] {content}\n')
+            # 2. 写入日志
+            log_success = self._write_log(prefix, content)
+            if not log_success:
+                logger.error(f"无法写入{prefix}日志")
+            
+            # 3. 发送到Telegram
+            self.send_to_telegram(tg_content, use_alt_bot)
+            
         except Exception as e:
-            logger.error(f"写入日志失败: {e}")
-            print(f"写入日志失败: {e}")
+            logger.error(f"处理消息时发生错误: {e}")
+            print(f"处理消息时发生错误: {e}")
 
     def send_to_telegram(self, message: str, use_alt_bot=False):
         """发送消息到 Telegram，use_alt_bot=True 时使用备用 bot"""
@@ -77,7 +108,13 @@ class MyHandler(blivedm.BaseHandler):
                 logger.warning("消息内容为空，跳过发送")
                 return
 
-            url = f"https://api-proxy.me/telegram/bot{bot_token}/sendMessage"
+            # 使用多个API地址，如果一个失败就尝试下一个
+            api_urls = [
+                f"https://tgapi.chenguaself.tk/bot{bot_token}/sendMessage",  # 你的 Cloudflare Workers 反代
+                f"https://api-proxy.me/telegram/bot{bot_token}/sendMessage",
+                f"https://api.telegram.org/bot{bot_token}/sendMessage"  # 官方 API（备用）
+            ]
+
             data = {
                 "chat_id": chat_id,
                 "text": message,
@@ -85,26 +122,45 @@ class MyHandler(blivedm.BaseHandler):
                 "disable_web_page_preview": True
             }
 
-            # 添加重试机制
+            # 添加增强的重试机制
             max_retries = 3
-            retry_count = 0
-            while retry_count < max_retries:
-                try:
-                    response = requests.post(url, json=data, timeout=10)  # 添加超时设置
-                    response.raise_for_status()
-                    logger.info("消息发送成功")
-                    break
-                except requests.exceptions.RequestException as e:
-                    retry_count += 1
-                    if retry_count == max_retries:
-                        logger.error(f"发送消息到 Telegram 失败（已重试{max_retries}次）: {e}")
-                    else:
-                        logger.warning(f"发送消息失败，正在重试（{retry_count}/{max_retries}）: {e}")
-                        import time
-                        time.sleep(1)  # 重试前等待1秒
+            retry_delay = 2  # 初始重试延迟（秒）
+
+            for url in api_urls:
+                retry_count = 0
+                current_delay = retry_delay
+
+                while retry_count < max_retries:
+                    try:
+                        response = requests.post(
+                            url,
+                            json=data,
+                            timeout=10,  # 增加超时时间到30秒
+                            headers={
+                                'Connection': 'close',  # 避免连接复用问题
+                                'User-Agent': 'BiliTgBot/1.0'  # 添加 User-Agent
+                            }
+                        )
+                        response.raise_for_status()
+                        logger.info(f"消息发送成功 (使用 {url})")
+                        return  # 成功发送后直接返回
+                    except requests.exceptions.RequestException as e:
+                        retry_count += 1
+                        if retry_count == max_retries:
+                            logger.warning(f"使用 {url} 发送失败（已重试{max_retries}次）: {e}")
+                            break  # 尝试下一个 URL
+                        else:
+                            logger.warning(f"发送消息失败，正在重试（{retry_count}/{max_retries}）: {e}")
+                            import time
+                            time.sleep(current_delay)
+                            current_delay *= 2  # 指数退避
+
+            # 如果所有 URL 都失败了
+            logger.error("所有 Telegram API 地址均发送失败")
 
         except Exception as e:
             logger.error(f"发送消息到 Telegram 时发生未知错误: {e}")
+            print(f"发送消息到 Telegram 时发生未知错误: {e}")
 
     def _on_danmaku(self, client: blivedm.BLiveClient, message: web_models.DanmakuMessage):
         """弹幕消息"""
@@ -113,49 +169,60 @@ class MyHandler(blivedm.BaseHandler):
                 return
             # 使用 HTML 格式，将用户名转换为可点击的链接
             user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
-            content = f'💬 [{client.room_id}] {user_link}: {message.msg}'
-            log_content = f'[{client.room_id}] {message.uname}: {message.msg}'  # 日志内容不包含HTML标签
-            print(f'💬 {log_content}')  # 控制台输出
-            self._write_log('danmaku', log_content)  # 写入日志
-            self.send_to_telegram(content)
+            tg_content = f'💬 [{client.room_id}] {user_link}: {message.msg}'
+            log_content = f'[{client.room_id}] {message.uname}: {message.msg}'
+            self._handle_message('danmaku', f'💬 {log_content}', tg_content)
         except Exception as e:
             logger.error(f"处理弹幕消息时发生错误: {e}")
             print(f"处理弹幕消息时发生错误: {e}")
 
     def _on_gift(self, client: blivedm.BLiveClient, message: web_models.GiftMessage):
         """礼物消息"""
-        if not message.gift_name or not message.uname:
-            return
-        content = f'🎁 [{client.room_id}] {message.uname} 赠送 {message.gift_name} x{message.num}'
-        print(content)
-        self.send_to_telegram(content)
+        try:
+            if not message.gift_name or not message.uname:
+                return
+            user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
+            content = f'🎁 [{client.room_id}] {message.uname} 赠送 {message.gift_name} x{message.num}'
+            tg_content = f'🎁 [{client.room_id}] {user_link} 赠送 {message.gift_name} x{message.num}'
+            self._handle_message('gift', content, tg_content)
+        except Exception as e:
+            logger.error(f"处理礼物消息时发生错误: {e}")
+            print(f"处理礼物消息时发生错误: {e}")
 
     def _on_buy_guard(self, client: blivedm.BLiveClient, message: web_models.GuardBuyMessage):
         """上舰消息"""
-        if not message.username:
-            return
-        content = f'🚢 [{client.room_id}] {message.username} 购买 {message.gift_name}'
-        print(content)
-        self.send_to_telegram(content)
+        try:
+            if not message.username:
+                return
+            user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
+            content = f'🚢 [{client.room_id}] {message.username} 购买 {message.gift_name}'
+            tg_content = f'🚢 [{client.room_id}] {user_link} 购买 {message.gift_name}'
+            self._handle_message('guard', content, tg_content)
+        except Exception as e:
+            logger.error(f"处理上舰消息时发生错误: {e}")
+            print(f"处理上舰消息时发生错误: {e}")
 
     def _on_super_chat(self, client: blivedm.BLiveClient, message: web_models.SuperChatMessage):
         """SC（醒目留言）消息"""
-        if not message.uname or not message.message:
-            return
-        content = f'💎 [{client.room_id}] SC￥{message.price} {message.uname}: {message.message}'
-        print(content)
-        self.send_to_telegram(content)
+        try:
+            if not message.uname or not message.message:
+                return
+            user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
+            content = f'💎 [{client.room_id}] SC￥{message.price} {message.uname}: {message.message}'
+            tg_content = f'💎 [{client.room_id}] SC￥{message.price} {user_link}: {message.message}'
+            self._handle_message('superchat', content, tg_content)
+        except Exception as e:
+            logger.error(f"处理SC消息时发生错误: {e}")
+            print(f"处理SC消息时发生错误: {e}")
 
     def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
         """进房消息（使用备用 bot 发送）"""
         try:
             if message.msg_type == 1:
                 user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
-                content = f'🚪 [{client.room_id}] {user_link} 进入房间'
-                log_content = f'[{client.room_id}] {message.username} 进入房间'  # 日志内容不包含HTML标签
-                print(f'🚪 {log_content}')  # 控制台输出
-                self._write_log('enter', log_content)  # 写入日志
-                self.send_to_telegram(content, use_alt_bot=True)
+                content = f'🚪 [{client.room_id}] {message.username} 进入房间'
+                tg_content = f'🚪 [{client.room_id}] {user_link} 进入房间'
+                self._handle_message('enter', content, tg_content, use_alt_bot=True)
         except Exception as e:
             logger.error(f"处理进房消息时发生错误: {e}")
             print(f"处理进房消息时发生错误: {e}")
