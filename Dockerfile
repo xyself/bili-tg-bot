@@ -17,19 +17,19 @@ RUN apk add --no-cache \
     openssl-dev \
     tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone
-
-# 复制项目文件
-COPY requirements.txt .
-COPY blivedm ./blivedm
-COPY blivedm_tg_bot.py .
-
-# 安装依赖并清理缓存
-RUN pip install --no-cache-dir -r requirements.txt && \
+    echo $TZ > /etc/timezone && \
+    # 安装 Python 依赖
+    pip install --no-cache-dir -r requirements.txt && \
+    # 清理不必要的文件和缓存
     find /usr/local/lib/python3.12/site-packages -name "*.pyc" -delete && \
     find /usr/local/lib/python3.12/site-packages -name "__pycache__" -exec rm -r {} + 2>/dev/null || true && \
     rm -rf /root/.cache/pip/* && \
+    # 删除临时构建依赖
     apk del gcc musl-dev python3-dev libffi-dev openssl-dev
+
+# 复制项目文件（放在 requirements.txt 后面，可以利用 Docker 缓存机制）
+COPY blivedm ./blivedm
+COPY blivedm_tg_bot.py .
 
 # 创建日志目录
 RUN mkdir -p logs
