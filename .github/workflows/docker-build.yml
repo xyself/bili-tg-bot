@@ -34,6 +34,7 @@ jobs:
           # 备份当前的 requirements.txt
           cp requirements.txt requirements.txt.bak
 
+          # 更新 requirements.txt
           if [ -f requirements.in ]; then
               pip-compile --upgrade requirements.in
           else
@@ -45,8 +46,8 @@ jobs:
           if ! cmp -s requirements.txt requirements.txt.bak; then
               echo "Dependencies were updated"
               rm requirements.txt.bak
-              git config --global user.name 'GitHub Actions'
-              git config --global user.email 'actions@github.com'
+              git config --global user.name 'xyself'
+              git config --global user.email '133769218+xyself@users.noreply.github.com'
               git add requirements.txt
               git commit -m "chore: update dependencies" || echo "No changes to commit"
               git push || echo "No changes to push"
@@ -57,6 +58,7 @@ jobs:
 
       - name: Check dependencies
         run: |
+          # 检查是否有依赖冲突
           python -m pip check
 
   build:
@@ -81,7 +83,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64  # 只支持 amd64 架构
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/bili-tg-bot:latest
