@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          
+
       - name: Install pip-tools
         run: |
           python -m pip install --upgrade pip
@@ -33,40 +33,50 @@ jobs:
         run: |
           # 备份当前的 requirements.txt
           cp requirements.txt requirements.txt.bak
-          # 更新依赖
-          pip-compile --upgrade requirements.in
-          # 检查是否有更新
-          if ! cmp -s requirements.txt requirements.txt.bak; then
-            echo "Dependencies were updated"
-            rm requirements.txt.bak
-            git config --global user.name 'GitHub Actions'
-            git config --global user.email 'actions@github.com'
-            git add requirements.txt
-            git commit -m "chore: update dependencies"
-            git push
+
+          if [ -f requirements.in ]; then
+              pip-compile --upgrade requirements.in
           else
-            echo "No dependency updates needed"
-            rm requirements.txt.bak
+              pip install --upgrade -r requirements.txt
+              pip freeze > requirements.txt
           fi
+
+          # 检查依赖是否有更新
+          if ! cmp -s requirements.txt requirements.txt.bak; then
+              echo "Dependencies were updated"
+              rm requirements.txt.bak
+              git config --global user.name 'GitHub Actions'
+              git config --global user.email 'actions@github.com'
+              git add requirements.txt
+              git commit -m "chore: update dependencies" || echo "No changes to commit"
+              git push || echo "No changes to push"
+          else
+              echo "No dependency updates needed"
+              rm requirements.txt.bak
+          fi
+
+      - name: Check dependencies
+        run: |
+          python -m pip check
 
   build:
     needs: update-deps
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -75,4 +85,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/bili-tg-bot:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/bili-tg-bot:${{ github.sha }} 
+            ${{ secrets.DOCKERHUB_USERNAME }}/bili-tg-bot:${{ github.sha }}
