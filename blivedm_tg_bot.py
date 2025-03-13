@@ -62,31 +62,6 @@ class MyHandler(blivedm.BaseHandler):
         except Exception as e:
             logger.error(f"处理消息时发生错误: {e}")
 
-    def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
-        """进入房间、关注主播等互动消息"""
-        if not message.username:
-            return
-        
-        # 根据消息类型选择对应的动作文本
-        action_map = {
-            1: '进入了直播间',
-            2: '关注了主播',
-            3: '分享了直播间',
-            4: '特别关注了主播',
-            5: '与主播互粉了',
-            6: '为主播点赞了'
-        }
-        action = action_map.get(message.msg_type, '未知操作')
-        
-        user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
-        content = f'🎮 [{client.room_id}] {message.username} {action}'
-        tg_content = f'🎮 [{client.room_id}] {user_link} {action}'
-        self._handle_message('interact', content, tg_content)
-
-    def handle(self, client: ws_base.WebSocketClientBase, command: dict):
-        """重写 handle 方法以处理 DM_INTERACTION 消息"""
-        super().handle(client, command)
-
     def send_to_telegram(self, message: str, use_alt_bot=False):
         """发送消息到 Telegram"""
         try:
@@ -155,25 +130,36 @@ class MyHandler(blivedm.BaseHandler):
         self._handle_message('superchat', content, tg_content)
 
     def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
-        """进入房间、关注主播等互动消息"""
+        """进房消息和互动消息"""
         if not message.username:
             return
-        
-        # 根据消息类型选择对应的动作文本
-        action_map = {
-            1: '进入了直播间',
-            2: '关注了主播',
-            3: '分享了直播间',
-            4: '特别关注了主播',
-            5: '与主播互粉了',
-            6: '为主播点赞了'
-        }
-        action = action_map.get(message.msg_type, '未知操作')
-        
+            
         user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
-        content = f'🎮 [{client.room_id}] {message.username} {action}'
-        tg_content = f'🎮 [{client.room_id}] {user_link} {action}'
-        self._handle_message('interact', content, tg_content)
+        
+        if message.msg_type == 1:
+            content = f'🚪 [{client.room_id}] {message.username} 进入房间'
+            tg_content = f'🚪 [{client.room_id}] {user_link} 进入房间'
+            self._handle_message('enter', content, tg_content, use_alt_bot=True)
+        elif message.msg_type == 2:
+            content = f'❤️ [{client.room_id}] {message.username} 关注了主播'
+            tg_content = f'❤️ [{client.room_id}] {user_link} 关注了主播'
+            self._handle_message('follow', content, tg_content, use_alt_bot=True)
+        elif message.msg_type == 3:
+            content = f'🔄 [{client.room_id}] {message.username} 分享了直播间'
+            tg_content = f'🔄 [{client.room_id}] {user_link} 分享了直播间'
+            self._handle_message('share', content, tg_content, use_alt_bot=True)
+        elif message.msg_type == 4:
+            content = f'⭐ [{client.room_id}] {message.username} 特别关注了主播'
+            tg_content = f'⭐ [{client.room_id}] {user_link} 特别关注了主播'
+            self._handle_message('special_follow', content, tg_content, use_alt_bot=True)
+        elif message.msg_type == 5:
+            content = f'🔄❤️ [{client.room_id}] {message.username} 与主播互粉了'
+            tg_content = f'🔄❤️ [{client.room_id}] {user_link} 与主播互粉了'
+            self._handle_message('mutual_follow', content, tg_content, use_alt_bot=True)
+        elif message.msg_type == 6:
+            content = f'👍 [{client.room_id}] {message.username} 为主播点赞了'
+            tg_content = f'👍 [{client.room_id}] {user_link} 为主播点赞了'
+            self._handle_message('like', content, tg_content, use_alt_bot=True)
 
 
 async def main():
