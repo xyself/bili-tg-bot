@@ -8,6 +8,9 @@ ENV TZ=Asia/Shanghai \
 # 设置工作目录
 WORKDIR /app
 
+# 首先复制requirements.txt文件
+COPY requirements.txt .
+
 # 安装编译依赖并清理缓存
 RUN apk add --no-cache \
     gcc \
@@ -27,7 +30,7 @@ RUN apk add --no-cache \
     # 删除临时构建依赖
     apk del gcc musl-dev python3-dev libffi-dev openssl-dev
 
-# 复制项目文件（放在 requirements.txt 后面，可以利用 Docker 缓存机制）
+# 复制其余项目文件
 COPY blivedm ./blivedm
 COPY blivedm_tg_bot.py .
 
