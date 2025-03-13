@@ -8,9 +8,6 @@ from dotenv import load_dotenv
 import aiohttp
 import blivedm
 import blivedm.models.web as web_models
-import blivedm.clients.ws_base as ws_base
-import json
-import time
 
 # 配置日志
 logging.basicConfig(
