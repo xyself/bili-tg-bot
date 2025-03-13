@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 import aiohttp
 import blivedm
 import blivedm.models.web as web_models
+import blivedm.clients.ws_base as ws_base
+import json
+import time
 
 # 配置日志
 logging.basicConfig(
@@ -61,6 +64,31 @@ class MyHandler(blivedm.BaseHandler):
             self.send_to_telegram(tg_content, use_alt_bot)
         except Exception as e:
             logger.error(f"处理消息时发生错误: {e}")
+
+    def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
+        """进入房间、关注主播等互动消息"""
+        if not message.username:
+            return
+        
+        # 根据消息类型选择对应的动作文本
+        action_map = {
+            1: '进入了直播间',
+            2: '关注了主播',
+            3: '分享了直播间',
+            4: '特别关注了主播',
+            5: '与主播互粉了',
+            6: '为主播点赞了'
+        }
+        action = action_map.get(message.msg_type, '未知操作')
+        
+        user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
+        content = f'🎮 [{client.room_id}] {message.username} {action}'
+        tg_content = f'🎮 [{client.room_id}] {user_link} {action}'
+        self._handle_message('interact', content, tg_content)
+
+    def handle(self, client: ws_base.WebSocketClientBase, command: dict):
+        """重写 handle 方法以处理 DM_INTERACTION 消息"""
+        super().handle(client, command)
 
     def send_to_telegram(self, message: str, use_alt_bot=False):
         """发送消息到 Telegram"""
@@ -130,12 +158,25 @@ class MyHandler(blivedm.BaseHandler):
         self._handle_message('superchat', content, tg_content)
 
     def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
-        """进房消息"""
-        if message.msg_type == 1:
-            user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
-            content = f'🚪 [{client.room_id}] {message.username} 进入房间'
-            tg_content = f'🚪 [{client.room_id}] {user_link} 进入房间'
-            self._handle_message('enter', content, tg_content, use_alt_bot=True)
+        """进入房间、关注主播等互动消息"""
+        if not message.username:
+            return
+        
+        # 根据消息类型选择对应的动作文本
+        action_map = {
+            1: '进入了直播间',
+            2: '关注了主播',
+            3: '分享了直播间',
+            4: '特别关注了主播',
+            5: '与主播互粉了',
+            6: '为主播点赞了'
+        }
+        action = action_map.get(message.msg_type, '未知操作')
+        
+        user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
+        content = f'🎮 [{client.room_id}] {message.username} {action}'
+        tg_content = f'🎮 [{client.room_id}] {user_link} {action}'
+        self._handle_message('interact', content, tg_content)
 
 
 async def main():
