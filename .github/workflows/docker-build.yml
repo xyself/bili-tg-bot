@@ -1,4 +1,4 @@
-name: Docker Build and Dependency Update
+name: Docker Build
 
 on:
   schedule:
@@ -14,55 +14,7 @@ on:
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  update-deps:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install pip-tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install pip-tools
-
-      - name: Update dependencies
-        run: |
-          # 备份当前的 requirements.txt
-          cp requirements.txt requirements.txt.bak
-
-          # 更新 requirements.txt
-          if [ -f requirements.in ]; then
-              pip-compile --upgrade requirements.in
-          else
-              pip install --upgrade -r requirements.txt
-              pip freeze > requirements.txt
-          fi
-
-          # 检查依赖是否有更新
-          if ! cmp -s requirements.txt requirements.txt.bak; then
-              echo "Dependencies were updated"
-              rm requirements.txt.bak
-              git config --global user.name 'xyself'
-              git config --global user.email '133769218+xyself@users.noreply.github.com'
-              git add requirements.txt
-              git commit -m "chore: update dependencies" || echo "No changes to commit"
-              git push || echo "No changes to push"
-          else
-              echo "No dependency updates needed"
-              rm requirements.txt.bak
-          fi
-
-      - name: Check dependencies
-        run: |
-          # 检查是否有依赖冲突
-          python -m pip check
-
   build:
-    needs: update-deps
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
