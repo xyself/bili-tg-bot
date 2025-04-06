@@ -18,10 +18,13 @@ RUN apk add --no-cache \
     python3-dev \
     libffi-dev \
     openssl-dev \
+    git \
     tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
-    # 安装 Python 依赖
+    # 先安装requests库
+    pip install --no-cache-dir requests==2.31.0 && \
+    # 安装Python依赖
     pip install --no-cache-dir -r requirements.txt && \
     # 清理不必要的文件和缓存
     find /usr/local/lib/python3.12/site-packages -name "*.pyc" -delete && \
