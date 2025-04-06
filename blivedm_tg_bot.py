@@ -113,11 +113,17 @@ class MyHandler(blivedm.BaseHandler):
 
     def _on_buy_guard(self, client: blivedm.BLiveClient, message: web_models.GuardBuyMessage):
         """上舰消息"""
-        if not message.username:
+        # 兼容新版blivedm，新版本可能使用uname而不是username
+        username = getattr(message, 'username', None) or getattr(message, 'uname', '')
+        gift_name = getattr(message, 'gift_name', '舰长')
+        uid = getattr(message, 'uid', 0)
+        
+        if not username:
             return
-        user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
-        content = f'🚢 [{client.room_id}] {message.username} 购买 {message.gift_name}'
-        tg_content = f'🚢 [{client.room_id}] {user_link} 购买 {message.gift_name}'
+            
+        user_link = f'<a href="https://space.bilibili.com/{uid}">{username}</a>'
+        content = f'🚢 [{client.room_id}] {username} 购买 {gift_name}'
+        tg_content = f'🚢 [{client.room_id}] {user_link} 购买 {gift_name}'
         self._handle_message('guard', content, tg_content)
 
     def _on_super_chat(self, client: blivedm.BLiveClient, message: web_models.SuperChatMessage):
@@ -131,33 +137,37 @@ class MyHandler(blivedm.BaseHandler):
 
     def _on_interact_word(self, client: blivedm.BLiveClient, message: web_models.InteractWordMessage):
         """进房消息和互动消息"""
-        if not message.username:
+        # 兼容新版blivedm，新版本使用uname而不是username
+        username = getattr(message, 'uname', None) or getattr(message, 'username', '')
+        uid = getattr(message, 'uid', 0)
+        
+        if not username:
             return
             
-        user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.username}</a>'
+        user_link = f'<a href="https://space.bilibili.com/{uid}">{username}</a>'
         
         if message.msg_type == 1:
-            content = f'🚪 [{client.room_id}] {message.username} 进入房间'
+            content = f'🚪 [{client.room_id}] {username} 进入房间'
             tg_content = f'🚪 [{client.room_id}] {user_link} 进入房间'
             self._handle_message('enter', content, tg_content, use_alt_bot=True)
         elif message.msg_type == 2:
-            content = f'❤️ [{client.room_id}] {message.username} 关注了主播'
+            content = f'❤️ [{client.room_id}] {username} 关注了主播'
             tg_content = f'❤️ [{client.room_id}] {user_link} 关注了主播'
             self._handle_message('follow', content, tg_content, use_alt_bot=True)
         elif message.msg_type == 3:
-            content = f'🔄 [{client.room_id}] {message.username} 分享了直播间'
+            content = f'🔄 [{client.room_id}] {username} 分享了直播间'
             tg_content = f'🔄 [{client.room_id}] {user_link} 分享了直播间'
             self._handle_message('share', content, tg_content, use_alt_bot=True)
         elif message.msg_type == 4:
-            content = f'⭐ [{client.room_id}] {message.username} 特别关注了主播'
+            content = f'⭐ [{client.room_id}] {username} 特别关注了主播'
             tg_content = f'⭐ [{client.room_id}] {user_link} 特别关注了主播'
             self._handle_message('special_follow', content, tg_content, use_alt_bot=True)
         elif message.msg_type == 5:
-            content = f'🔄❤️ [{client.room_id}] {message.username} 与主播互粉了'
+            content = f'🔄❤️ [{client.room_id}] {username} 与主播互粉了'
             tg_content = f'🔄❤️ [{client.room_id}] {user_link} 与主播互粉了'
             self._handle_message('mutual_follow', content, tg_content, use_alt_bot=True)
         elif message.msg_type == 6:
-            content = f'👍 [{client.room_id}] {message.username} 为主播点赞了'
+            content = f'👍 [{client.room_id}] {username} 为主播点赞了'
             tg_content = f'👍 [{client.room_id}] {user_link} 为主播点赞了'
             self._handle_message('like', content, tg_content, use_alt_bot=True)
 

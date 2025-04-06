@@ -30,8 +30,7 @@ RUN apk add --no-cache \
     # 删除临时构建依赖
     apk del gcc musl-dev python3-dev libffi-dev openssl-dev
 
-# 复制其余项目文件
-COPY blivedm ./blivedm
+# 复制主程序文件
 COPY blivedm_tg_bot.py .
 
 # 创建日志目录

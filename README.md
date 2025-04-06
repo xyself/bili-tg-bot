@@ -1,18 +1,41 @@
-# blivedm
+# B站直播弹幕Telegram转发机器人
 
-Python获取bilibili直播弹幕的库，使用WebSocket协议，支持web端和B站直播开放平台两种接口
-
-[协议解释](https://open-live.bilibili.com/document/657d8e34-f926-a133-16c0-300c1afc6e6b)
-
-基于本库开发的一个应用：[blivechat](https://github.com/xfgryujk/blivechat)
+基于[blivedm](https://github.com/xfgryujk/blivedm)开发的B站直播弹幕转发到Telegram的机器人。
 
 ## 使用说明
 
-1. 需要Python 3.8及以上版本
-2. 安装依赖
+本项目使用blivedm库获取B站直播弹幕，支持将弹幕、礼物、上舰等消息转发到Telegram频道。
 
-    ```sh
-    pip install -r requirements.txt
-    ```
+### 依赖
 
-3. web端例程在[sample.py](./sample.py)，B站直播开放平台例程在[open_live_sample.py](./open_live_sample.py)
+项目通过git依赖安装blivedm库，无需手动管理blivedm代码：
+
+```bash
+pip install -r requirements.txt
+```
+
+### 环境变量
+
+请配置以下环境变量：
+
+- `TELEGRAM_BOT_TOKEN`: Telegram机器人token
+- `TELEGRAM_CHAT_ID`: 接收消息的Telegram频道ID
+- `ALT_TELEGRAM_BOT_TOKEN`: 备用Telegram机器人token（可选）
+- `ROOM_ID`: B站直播间ID，多个ID用逗号分隔
+- `SESSDATA`: B站登录cookie中的SESSDATA值（可选）
+
+### 运行
+
+```bash
+python blivedm_tg_bot.py
+```
+
+### Docker部署
+
+```bash
+docker-compose up -d
+```
+
+### 系统要求
+
+- Python 3.8 或更高版本
