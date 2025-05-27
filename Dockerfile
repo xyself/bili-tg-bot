@@ -8,6 +8,7 @@ ENV TZ=Asia/Shanghai \
 # 设置工作目录
 WORKDIR /app
 
+
 # 首先复制requirements.txt文件
 COPY requirements.txt .
 
@@ -22,20 +23,15 @@ RUN apk add --no-cache \
     tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
-    # 先安装requests库
-    pip install --no-cache-dir requests==2.31.0 && \
-    # 安装Python依赖
     pip install --no-cache-dir -r requirements.txt && \
-    # 清理不必要的文件和缓存
     find /usr/local/lib/python3.12/site-packages -name "*.pyc" -delete && \
     find /usr/local/lib/python3.12/site-packages -name "__pycache__" -exec rm -r {} + 2>/dev/null || true && \
     rm -rf /root/.cache/pip/* && \
-    # 删除临时构建依赖
     apk del gcc musl-dev python3-dev libffi-dev openssl-dev
 
 # 复制主程序文件
 COPY blivedm_tg_bot.py .
-
+COPY blivedm ./blivedm
 # 创建日志目录
 RUN mkdir -p logs
 
