@@ -1,4 +1,4 @@
-# 第一步：编译和安装依赖
+
 FROM python:3.12-alpine as builder
 
 WORKDIR /install
