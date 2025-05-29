@@ -1,4 +1,5 @@
 import asyncio
+import time
 import http.cookies
 import os
 import logging
@@ -89,7 +90,7 @@ class MyHandler(blivedm.BaseHandler):
                         response.raise_for_status()
                         return
                     except requests.RequestException:
-                        asyncio.sleep(2)
+                        time.sleep(2)
         except Exception as e:
             logger.error(f"发送 Telegram 消息失败: {e}")
 
