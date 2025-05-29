@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev openssl-dev git && \
     pip install --prefix=/install/deps -r requirements.txt
 
-# 第二步：仅复制运行所需的部分
+# 第二步
 FROM python:3.12-alpine
 
 ENV TZ=Asia/Shanghai \
