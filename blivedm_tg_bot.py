@@ -110,10 +110,10 @@ class MyHandler(blivedm.BaseHandler):
     def _on_danmaku(self, client, message: web_models.DanmakuMessage):
         if not message.msg or not message.uname:
             return
-        medal_info = f'[{message.medal_name}LV{message.medal_level}]' if message.medal_level else ''
+   #    medal_info = f'[{message.medal_name}LV{message.medal_level}]' if message.medal_level else ''
         user_link = f'<a href="https://space.bilibili.com/{message.uid}">{message.uname}</a>'
-        content = f'💬 [{client.room_id}] {medal_info} {message.uname}: {message.msg}'
-        tg_content = f'💬 [{client.room_id}] {medal_info} {user_link}: {message.msg}'
+        content = f'💬 [{client.room_id}] {message.uname}: {message.msg}'
+        tg_content = f'💬 [{client.room_id}] {user_link}: {message.msg}'
         asyncio.create_task(self._handle_message('danmaku', content, tg_content))
 
     def _on_gift(self, client, message: web_models.GiftMessage):
