@@ -35,7 +35,6 @@ async def send_telegram(session: aiohttp.ClientSession, message: str, use_alt_bo
         return
     api_urls = [
         f"https://tgapi.chenguaself.tk/bot{bot_token}/sendMessage",
-        f"https://api-proxy.me/telegram/bot{bot_token}/sendMessage",
         f"https://api.telegram.org/bot{bot_token}/sendMessage"
     ]
     data = {
